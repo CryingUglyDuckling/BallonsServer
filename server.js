@@ -14,28 +14,28 @@ const connecting=mongoose.connection.once('open',function(){
     console.log("Connection error".error);    
 });
 // ballons
-allBalloons = [
+allBalloons =[
     airBalloon={
         name:"Air Balloon",
-        price: 5000,
+        price: 10000,
         health:100,
         maxHealth:500,
         velocity:200,                    
         tapRate:2000,
-        scale:1,
+        scale:.6,
         gravity:0,
-        bounce:1,
+        bounce:.9,
         color:0xff0000,
         key:'balloon'
     },
     oxyBalloon={
         name:"Oxygen Balloon",
-        price: 10000,
+        price: 20000,
         health:130,
         maxHealth:600,
         velocity:300,
         tapRate:1800,
-        scale:.8,
+        scale:.7,
         gravity:30,
         bounce:.7,
         color:0x800000,
@@ -43,14 +43,14 @@ allBalloons = [
     },
     argonBalloon={
         name:"Argon Balloon",
-        price: 16000,
+        price: 136000,
         health:80,
         maxHealth:400,
         velocity:400,                    
         tapRate:1000,
-        scale:.8,
-        gravity:50,
-        bounce:.06,
+        scale:.5,
+        gravity:80,
+        bounce:.1,
         color:0x008080,
         key:'balloon'
     },
@@ -58,10 +58,10 @@ allBalloons = [
         name:"Benzene Balloon",
         price: 3000000,
         health:500,
-        maxHealth:1200,
+        maxHealth:1400,
         velocity:100,
         tapRate:2000,
-        scale:1.5,
+        scale:1.2,
         gravity:300,
         bounce:.05,
         color:0xffff00,
@@ -69,13 +69,13 @@ allBalloons = [
     },
     co2Balloon={
         name:"CO2 Balloon",
-        price: 20000,
+        price: 50000,
         health:120,
         maxHealth:800,
         velocity:500,
-        tapRate:1000,
+        tapRate:1400,
         scale:.8,
-        gravity:300,
+        gravity:120,
         bounce:.6,
         color:0xfffff0,
         key:'balloon'
@@ -88,9 +88,9 @@ allBalloons = [
         velocity:400,
         tapRate:2200,
         scale:.8,
-        gravity:30,
+        gravity:-30,
         bounce:.5,
-        color:0xf0fff0,
+        color:0x83A5D1,
         key:'balloon'
     },
     heliumBalloon={
@@ -101,9 +101,9 @@ allBalloons = [
         velocity:600,
         tapRate:1000,
         scale:.6,
-        gravity:-200,
-        bounce:3,
-        color:0xe6e6fa,
+        gravity:-100,
+        bounce:1.3,
+        color:0x66cccc,
         key:'balloon'
     },
     hydrogenBalloon={
@@ -113,10 +113,10 @@ allBalloons = [
         maxHealth:2500,
         velocity:700,
         tapRate:500,
-        scale:1.5,
-        gravity:-400,
+        scale:1.3,
+        gravity:-200,
         bounce:.01,
-        color:0xff6347,
+        color:0x000000,
         key:'balloon'
     },
 ]; 
@@ -293,9 +293,8 @@ gameData.findOne().then(function(result){
 });
 //when connection is made fire the callback function
 io.sockets.on('connection',function(receivedSocket){
-    console.log('made socket connection with id'+receivedSocket.id);
-    receivedSocket.emit('connected',"Connected To the server");
-    receivedSocket.emit('trnmnt',"tournmasdadasdadsf dsaf 23324");
+    console.log('made socket connection with id'+receivedSocket.id);    
+    // receivedSocket.emit('trnmnt',"tournmasdadasdadsf dsaf 23324");
     activePlayers++;
     receivedSocket.on('statsInfo',function(data){
         if(data.password=password){
@@ -304,6 +303,9 @@ io.sockets.on('connection',function(receivedSocket){
             }
             receivedSocket.emit('data',stats);            
         }        
+    });
+    receivedSocket.on('checkConnection',function(){                
+        receivedSocket.emit('connected2Server');
     });
     receivedSocket.on('checkUser',function(data){
         // console.log("Checking user "+data);        ;
@@ -342,7 +344,18 @@ io.sockets.on('connection',function(receivedSocket){
             }            
         });              
     });
-    
+    receivedSocket.on('updateMyInfo',function(data){   
+        console.log("My INfo updates")       ;     
+        player.findOne({id:data.id,pass:data.pass}).then(function(result){
+            if(result !=null){
+                if((data.coins-result.coins)<8000){result.coins=data.coins;}
+                result.level=data.level;
+                result.levelPercent=data.levelPercent;
+                result.selectedBalloon=data.selectedBalloon;
+                result.save();
+            }            
+        });              
+    });
     receivedSocket.on('addBalloon',function(data){
         console.log("add ballon executed"); 
         player.findOne({fbid:data.fbid,pass:data.pass}).then(function(result){
@@ -360,6 +373,7 @@ io.sockets.on('connection',function(receivedSocket){
     receivedSocket.on('modifyMyBalloons',function(data){
         player.findOne({fbid:data.fbid,pass:data.pass}).then(function(result){
             if(result !=null){
+                result.coins-=data.price;
                 result.balloons[data.index].health=data.health;
                 result.balloons[data.index].velocity=data.velocity;
                 result.balloons[data.index].scale=data.scale;
@@ -370,7 +384,18 @@ io.sockets.on('connection',function(receivedSocket){
             }
         });
     });
-
+    receivedSocket.on('ArcadeFinish',function(data){
+        console.log("Arcade finish");                          
+        player.findOne({fbid:data.fbid,pass:data.pass}).then(function(ans){
+            if(ans!=null){
+                ans.coins+=data.level*200;                             
+                if(ans.levelPercent>=80){ans.level++;ans.levelPercent=0}
+                else{ans.levelPercent+=20}            
+                ans.save();
+                console.log("saved arde data");
+            }            
+        });                            
+    });
     receivedSocket.on('onlineMatch',function(data){
         console.log("Online match");
         console.log(data);
@@ -382,7 +407,22 @@ io.sockets.on('connection',function(receivedSocket){
             receivedSocket.join('OM-'+match.matchNo);
             match.playersInfo.push(data);
             if(data.level<match.level){match.level=data.level} 
-                         
+            player.findOne({fbid:data.fbid}).then(function(user){
+                if(user !=null){
+                    user.coins-=1000;
+                    user.onlineMatchs++;
+                    user.save().then(function(err){
+                        if(err)console.log(err);
+                        player.findOne({fbid:data.fbid}).then(function(user2){
+                            console.log("Coins after saving"+user2.coins);
+                        });
+                    });
+                    console.log("Coins user"+user.coins);
+                }else{
+                    console.log("No user found");
+                }                
+            });
+            
             match.players++;
             console.log("player connected ");
             console.log(match.level);
@@ -427,10 +467,42 @@ io.sockets.on('connection',function(receivedSocket){
         matchModel.findOne({id:data.matchNo}).then(function(result){
             console.log("data value "+data.matchNo);
             switch(data.position){
-                case 1: if(result.pos1==null){result.pos1=data.fbid} break;
-                case 2: if(result.pos2==null){result.pos2=data.fbid} break;
-                case 3: if(result.pos3==null){result.pos3=data.fbid} break;
-                case 4: if(result.pos4==null){result.pos4=data.fbid} break;
+                case 1:
+                    console.log("pos1 with id "+data.fbid+" result pos 1 "+result.pos1); 
+                    if(result.pos1==null){
+                        result.pos1=data.fbid;
+                        player.findOne({fbid:data.fbid}).then(function(ans){
+                            ans.coins+=3000;                             
+                            if(ans.levelPercent>=80){ans.level++;ans.levelPercent=0}
+                            else{ans.levelPercent+=20}
+                            ans.onlineWinnings++;                            
+                            ans.save();
+                        });
+                    } break;
+                case 2: 
+                    if(result.pos2==null){
+                        result.pos2=data.fbid;
+                        player.findOne({fbid:data.fbid}).then(function(ans){
+                            ans.coins+=1500;
+                            ans.save();
+                        });
+                    } break;
+                case 3: 
+                    if(result.pos3==null){
+                        result.pos3=data.fbid;
+                        player.findOne({fbid:data.fbid}).then(function(ans){
+                            ans.coins+=500;
+                            ans.save();
+                        });
+                    } break;
+                case 4: 
+                    if(result.pos4==null){
+                        result.pos4=data.fbid;
+                        player.findOne({fbid:data.fbid}).then(function(ans){
+                            ans.coins+=500;
+                            ans.save();
+                        });
+                    } break;
             }
             result.save();
         });        
