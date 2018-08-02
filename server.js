@@ -403,7 +403,7 @@ io.sockets.on('connection',function(receivedSocket){
         if(match.players==0){
             match.requestTime=new Date;
         }               
-        if(match.players!=2){        
+        if(match.players!=3){        
             receivedSocket.join('OM-'+match.matchNo);
             match.playersInfo.push(data);
             if(data.level<match.level){match.level=data.level} 
@@ -428,7 +428,7 @@ io.sockets.on('connection',function(receivedSocket){
             console.log(match.level);
             console.log(match.matchNo);
         }
-        if(match.players>=2){
+        if(match.players>=3){
             console.log(match.matchNo);
             io.sockets.in('OM-'+match.matchNo).emit('OMReady',match);
             md=new matchModel({
