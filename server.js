@@ -21,7 +21,7 @@ allBalloons =[
         health:100,
         maxHealth:500,
         velocity:200,                    
-        tapRate:2000,
+        tapRate:800,
         scale:.6,
         gravity:0,
         bounce:.9,
@@ -34,7 +34,7 @@ allBalloons =[
         health:130,
         maxHealth:600,
         velocity:300,
-        tapRate:1800,
+        tapRate:1200,
         scale:.7,
         gravity:30,
         bounce:.7,
@@ -43,11 +43,11 @@ allBalloons =[
     },
     argonBalloon={
         name:"Argon Balloon",
-        price: 136000,
+        price: 80000,
         health:80,
         maxHealth:400,
         velocity:400,                    
-        tapRate:1000,
+        tapRate:1800,
         scale:.5,
         gravity:80,
         bounce:.1,
@@ -56,7 +56,7 @@ allBalloons =[
     },
     benzeneBalloon={
         name:"Benzene Balloon",
-        price: 3000000,
+        price: 130000,
         health:500,
         maxHealth:1400,
         velocity:100,
@@ -69,7 +69,7 @@ allBalloons =[
     },
     co2Balloon={
         name:"CO2 Balloon",
-        price: 50000,
+        price: 65500,
         health:120,
         maxHealth:800,
         velocity:500,
@@ -82,11 +82,11 @@ allBalloons =[
     },
     chlorineBalloon={
         name:"Chlorine Balloon",
-        price: 1000000,
+        price: 155400,
         health:200,
         maxHealth:1800,
         velocity:400,
-        tapRate:2200,
+        tapRate:1000,
         scale:.8,
         gravity:-30,
         bounce:.5,
@@ -95,11 +95,11 @@ allBalloons =[
     },
     heliumBalloon={
         name:"Helium Balloon",
-        price: 10000000,
+        price: 198200,
         health:300,
         maxHealth:2000,
         velocity:600,
-        tapRate:1000,
+        tapRate:2000,
         scale:.6,
         gravity:-100,
         bounce:1.3,
@@ -108,11 +108,11 @@ allBalloons =[
     },
     hydrogenBalloon={
         name:"Hydrogen Balloon",
-        price: 20000000,
+        price: 500000,
         health:400,
         maxHealth:2500,
         velocity:700,
-        tapRate:500,
+        tapRate:2200,
         scale:1.3,
         gravity:-200,
         bounce:.01,
@@ -264,9 +264,9 @@ function findIndex(){
         console.log("index is "+index +" Time to get data "+(mid-start)+" Time to find "+(end-mid));
     }); 
 }
-function requestData(socket,i,p){
+// function requestData(socket,i,p){
     
-}
+// }
 
 
 var server = require('http').createServer();
@@ -274,7 +274,7 @@ var io = require('socket.io')(server);
 var roomno=1,activePlayers=0,availableRooms=[];
 var password="junanBurns";
 var match={gameCode:12429,players:0,requestTime:Date,matchNo:String,level:1000,playersInfo:[]}
-
+var playerLimit=3;
 gameData.findOne().then(function(result){
     if(result!=null){        
         match.matchNo=result.matchNo;
@@ -305,7 +305,7 @@ io.sockets.on('connection',function(receivedSocket){
         }        
     });
     receivedSocket.on('checkConnection',function(){                
-        receivedSocket.emit('connected2Server');
+        receivedSocket.emit('connected2Server');        
     });
     receivedSocket.on('checkUser',function(data){
         // console.log("Checking user "+data);        ;
@@ -389,21 +389,60 @@ io.sockets.on('connection',function(receivedSocket){
         player.findOne({fbid:data.fbid,pass:data.pass}).then(function(ans){
             if(ans!=null){
                 ans.coins+=data.level*200;                             
-                if(ans.levelPercent>=80){ans.level++;ans.levelPercent=0}
-                else{ans.levelPercent+=20}            
+                if(ans.levelPercent>=80&&ans.level==data.level){ans.level++;ans.levelPercent=0}
+                else if(ans.level==data.level){ans.levelPercent+=20}            
                 ans.save();
                 console.log("saved arde data");
             }            
         });                            
-    });
+    });   
+        function inputBots(){
+            for(i=match.players;i<playerLimit;i++){
+                botData={                    
+                    level:10,
+                    name:"Bot",
+                    fbid:"bot12k4",
+                    pic:'assets/img/avatar.png',
+                    balloon:{
+                        name:"Oxygen Balloon",
+                        price: 20000,
+                        health:130,
+                        maxHealth:600,
+                        velocity:300,
+                        tapRate:1800,
+                        scale:.7,
+                        gravity:30,
+                        bounce:.7,
+                        color:0x800000,
+                        key:'balloon'
+                    }
+                }
+                match.playersInfo.push(botData);
+                if(botData.level<match.level){match.level=botData.level}
+                match.players++;
+            }
+        }
     receivedSocket.on('onlineMatch',function(data){
         console.log("Online match");
         console.log(data);
-        match.requestTime=new Date;
+        match.requestTime=new Date();
         if(match.players==0){
-            match.requestTime=new Date;
+            match.requestTime=new Date();
+            currentMatchNo=match.matchNo;
+            console.log("c m "+currentMatchNo);
+            setTimeout(function(){
+                console.log("inside "+currentMatchNo);
+                if(currentMatchNo==match.matchNo){
+                    console.log("started from here");
+                    inputBots();
+                    onlineStart();
+                }
+                else{
+                    console.log(currentMatchNo+" Match already started next match no "+match.matchNo);
+                }
+            }, 10000,currentMatchNo);
         }               
-        if(match.players!=3){        
+        if(match.players!=playerLimit){                    
             receivedSocket.join('OM-'+match.matchNo);
             match.playersInfo.push(data);
             if(data.level<match.level){match.level=data.level} 
@@ -411,24 +450,21 @@ io.sockets.on('connection',function(receivedSocket){
                 if(user !=null){
                     user.coins-=1000;
                     user.onlineMatchs++;
-                    user.save().then(function(err){
-                        if(err)console.log(err);
-                        player.findOne({fbid:data.fbid}).then(function(user2){
-                            console.log("Coins after saving"+user2.coins);
-                        });
-                    });
+                    user.save();
                     console.log("Coins user"+user.coins);
                 }else{
                     console.log("No user found");
                 }                
-            });
-            
+            });            
             match.players++;
-            console.log("player connected ");
-            console.log(match.level);
-            console.log(match.matchNo);
+            console.log("player connected n Level"+match.level+"Match No"+match.matchNo);            
         }
-        if(match.players>=3){
+        if(match.players>=playerLimit){
+            onlineStart();
+            //Math.floor((Math.random() * range) + start)
+        }        
+    });
+        function onlineStart(){
             console.log(match.matchNo);
             io.sockets.in('OM-'+match.matchNo).emit('OMReady',match);
             md=new matchModel({
@@ -447,9 +483,7 @@ io.sockets.on('connection',function(receivedSocket){
             match.playersInfo=[];
             match.gameCode=Math.floor((Math.random() * 29999) + 9819);
             console.log(match.gameCode);
-            //Math.floor((Math.random() * range) + start)
-        }        
-    });
+        }
     receivedSocket.on('OMUpdate',function(data){
         //check if clients is in the given room
         io.of('/').in('OM-'+data.matchNo).clients((error, clients) => {
@@ -510,41 +544,8 @@ io.sockets.on('connection',function(receivedSocket){
     receivedSocket.on('disconnect',function(data){
         activePlayers--;
         console.log('Disconnected The socket with Id '+receivedSocket.id);
-    });
-    /*
-    //when 3 people are filled increase roomno
-    if(users%4==0){roomno++};
-    receivedSocket.join('room-'+roomno);//join room
-    io.sockets.in('room-'+roomno).emit('inRoom',"you are in room "+roomno);//Send message in particular room
-    //console.log("User :"+ users);
-    // console.log("room :"+ roomno);
-    receivedSocket.roomId="room-"+roomno;
-    receivedSocket.on('chat',function(data){
-        io.sockets.emit('chat',data);
-        console.log("Emitted data"+data.test);
-    });
-    
-    receivedSocket.on('typing',function(data){
-        receivedSocket.broadcast.emit('typing',data);
-    });
-    receivedSocket.on('chat420',function(data){
-        console.log(data);
-        console.log("Working");
-    });
-    
-    //get all clients of namespace '/'
-    io.of('/').clients((error, clients) => {
-        if (error) throw error;
-        // console.log("Clients All : "+clients);
-        // console.log("Total clients: "+clients.length);
-    });
-    //get all clients in 1room-1' of namespace '/' 
-    io.of('/').in('room-1').clients((error, clients) => {
-        if (error) throw error;
-        // console.log("Clients in room-1: "+ clients);
-    });
-    */
-    
+    });        
 });
+
 
 server.listen(65080);
