@@ -390,6 +390,7 @@ io.sockets.on('connection',function(receivedSocket){
             if(ans!=null){
                 ans.coins+=data.level*200;                             
                 if(ans.levelPercent>=80&&ans.level==data.level){ans.level++;ans.levelPercent=0}
+                // if(1){ans.level=1;ans.levelPercent=80}
                 else if(ans.level==data.level){ans.levelPercent+=20}            
                 ans.save();
                 console.log("saved arde data");
@@ -507,9 +508,9 @@ io.sockets.on('connection',function(receivedSocket){
                         result.pos1=data.fbid;
                         player.findOne({fbid:data.fbid}).then(function(ans){
                             ans.coins+=3000;                             
+                            ans.onlineWinnings++;     
                             if(ans.levelPercent>=80){ans.level++;ans.levelPercent=0}
-                            else{ans.levelPercent+=20}
-                            ans.onlineWinnings++;                            
+                            else{ans.levelPercent+=20}                                                   
                             ans.save();
                         });
                     } break;
@@ -518,6 +519,8 @@ io.sockets.on('connection',function(receivedSocket){
                         result.pos2=data.fbid;
                         player.findOne({fbid:data.fbid}).then(function(ans){
                             ans.coins+=1500;
+                            if(ans.levelPercent>=80){ans.level++;ans.levelPercent=0}
+                            else{ans.levelPercent+=20}
                             ans.save();
                         });
                     } break;
@@ -526,6 +529,8 @@ io.sockets.on('connection',function(receivedSocket){
                         result.pos3=data.fbid;
                         player.findOne({fbid:data.fbid}).then(function(ans){
                             ans.coins+=500;
+                            if(ans.levelPercent>=80){ans.level++;ans.levelPercent=0}
+                            else{ans.levelPercent+=20}
                             ans.save();
                         });
                     } break;
@@ -534,6 +539,8 @@ io.sockets.on('connection',function(receivedSocket){
                         result.pos4=data.fbid;
                         player.findOne({fbid:data.fbid}).then(function(ans){
                             ans.coins+=500;
+                            if(ans.levelPercent>=80){ans.level++;ans.levelPercent=0}
+                            else{ans.levelPercent+=20}
                             ans.save();
                         });
                     } break;
